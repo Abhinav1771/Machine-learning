@@ -3,6 +3,16 @@ import torch
 import torch.nn as nn 
 import torch.optim as optim
 from torch.distributions import Categorical
+import requests
+import re
+import os
+import torch.optim as optim
+from pprint import pprint
+# Configure device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
 
 # Function to initialize the model
 class NextWordMLP(nn.Module):
@@ -41,6 +51,32 @@ torch.manual_seed(random_seed)
 
 # Load the vocabulary
 # Ensure that `stoi` and `itos` mappings are created here for vocabulary lookup
+# Download the dataset
+url = 'https://www.gutenberg.org/files/1661/1661-0.txt'
+response = requests.get(url)
+text = response.text
+
+# Preprocess text: remove special characters, convert to lowercase, etc.
+text = re.sub('[^a-zA-Z0-9 \.]', '', text).lower()
+
+# Split text into words
+words = text.split()
+# print(f"Sample words: {words[:10]}")
+
+# Filter out very short or very long words for a consistent vocabulary
+words = [word for word in words if 2 < len(word) < 10]
+
+# Remove words having non alphabets
+words = [word for word in words if word.isalpha()]
+
+# Create vocabulary and mappings
+unique_words = sorted(set(words))
+vocab_size = len(unique_words)
+stoi = {word: i for i, word in enumerate(unique_words)}
+itos = {i: word for word, i in stoi.items()}
+
+# print(f"Vocabulary size: {vocab_size}")
+# pprint(itos)
 
 # Initialize the model
 vocab_size = len(stoi)
