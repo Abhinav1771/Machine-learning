@@ -2,5 +2,5 @@ numpy
 pillow
 streamlit
 torch==2.2.1
-scikit-learn=1.5.1
+scikit-learn==1.5.1
 sklearn
