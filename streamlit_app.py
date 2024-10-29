@@ -7,9 +7,7 @@ import requests
 import re
 import os
 import torch.optim as optim
-import sklearn
 from pprint import pprint
-from sklearn.model_selection import train_test_split
 
 # Configure device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -96,29 +94,29 @@ itos = {i: word for word, i in stoi.items()}
 # pprint(itos)
 
 
-# Convert the text into a sequence of integer indices
-data = [stoi[word] for word in words]
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# # Convert the text into a sequence of integer indices
+# data = [stoi[word] for word in words]
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# Create dataset for next-word prediction
-def create_dataset(data, block_size):
-    X, Y = [], []
-    for i in range(len(data) - block_size):
-        context = data[i:i + block_size]
-        ix = data[i + block_size]
+# # Create dataset for next-word prediction
+# def create_dataset(data, block_size):
+#     X, Y = [], []
+#     for i in range(len(data) - block_size):
+#         context = data[i:i + block_size]
+#         ix = data[i + block_size]
 
-        # Print the context and next word in the desired format
-        print(' '.join(itos[j] for j in context), '--->', itos[ix])
+#         # Print the context and next word in the desired format
+#         #print(' '.join(itos[j] for j in context), '--->', itos[ix])
 
-        X.append(context)
-        Y.append(ix)
+#         X.append(context)
+#         Y.append(ix)
 
-    return torch.tensor(X, dtype=torch.long), torch.tensor(Y, dtype=torch.long)
+#     return torch.tensor(X, dtype=torch.long), torch.tensor(Y, dtype=torch.long)
 
-# Generate X and Y with printed contexts and next words
-X, Y = create_dataset(data, block_size)
-# Split the data into training and validation sets
-X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
+# # Generate X and Y with printed contexts and next words
+# X, Y = create_dataset(data, block_size)
+# # Split the data into training and validation sets
+# X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
 
 # Initialize the model
 vocab_size = len(stoi)
@@ -131,43 +129,43 @@ batch_size=64
 learning_rate = 0.001
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
-# Training loop
-for epoch in range(epochs):
-    model.train()
-    epoch_loss = 0
-    for i in range(0, len(X_train), batch_size):
-        x_batch = X_train[i:i + batch_size].to(device)
-        y_batch = Y_train[i:i + batch_size].to(device)
+# # Training loop
+# for epoch in range(epochs):
+#     model.train()
+#     epoch_loss = 0
+#     for i in range(0, len(X_train), batch_size):
+#         x_batch = X_train[i:i + batch_size].to(device)
+#         y_batch = Y_train[i:i + batch_size].to(device)
 
-        # Forward pass
-        y_pred = model(x_batch)
+#         # Forward pass
+#         y_pred = model(x_batch)
 
-        # Compute loss
-        loss = criterion(y_pred, y_batch)
+#         # Compute loss
+#         loss = criterion(y_pred, y_batch)
 
-        # Backward pass and optimization
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+#         # Backward pass and optimization
+#         optimizer.zero_grad()
+#         loss.backward()
+#         optimizer.step()
 
-        epoch_loss += loss.item()
+#         epoch_loss += loss.item()
 
-    # Validation
-    model.eval()
-    val_loss = 0
-    with torch.no_grad():
-        for i in range(0, len(X_val), batch_size):
-            x_val_batch = X_val[i:i + batch_size].to(device)
-            y_val_batch = Y_val[i:i + batch_size].to(device)
+#     # Validation
+#     model.eval()
+#     val_loss = 0
+#     with torch.no_grad():
+#         for i in range(0, len(X_val), batch_size):
+#             x_val_batch = X_val[i:i + batch_size].to(device)
+#             y_val_batch = Y_val[i:i + batch_size].to(device)
 
-            # Forward pass
-            y_val_pred = model(x_val_batch)
+#             # Forward pass
+#             y_val_pred = model(x_val_batch)
 
-            # Compute loss
-            loss = criterion(y_val_pred, y_val_batch)
-            val_loss += loss.item()
+#             # Compute loss
+#             loss = criterion(y_val_pred, y_val_batch)
+#             val_loss += loss.item()
 
-    #print(f"Epoch {epoch + 1}/{epochs}, Training Loss: {epoch_loss / len(X_train):.4f}, Validation Loss: {val_loss / len(X_val):.4f}")
+#     #print(f"Epoch {epoch + 1}/{epochs}, Training Loss: {epoch_loss / len(X_train):.4f}, Validation Loss: {val_loss / len(X_val):.4f}")
 
 
 # Function to predict next words
