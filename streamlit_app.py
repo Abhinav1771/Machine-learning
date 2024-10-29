@@ -7,12 +7,18 @@ import requests
 import re
 import os
 import torch.optim as optim
+import sklearn
 from pprint import pprint
+from sklearn.model_selection import train_test_split
 
 # Configure device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+
+
+
 
 
 # Function to initialize the model
@@ -30,6 +36,10 @@ class NextWordMLP(nn.Module):
         x = self.activation(self.fc1(x))
         x = self.fc2(x)
         return x
+
+
+
+
 
 # Set up Streamlit UI
 st.title("Next Word Prediction")
@@ -49,6 +59,12 @@ activation_func = activation_dict[activation_choice]
 
 # Set random seed for reproducibility
 torch.manual_seed(random_seed)
+
+
+
+
+
+
 
 # Load the vocabulary
 # Ensure that `stoi` and `itos` mappings are created here for vocabulary lookup
@@ -79,15 +95,80 @@ itos = {i: word for word, i in stoi.items()}
 # print(f"Vocabulary size: {vocab_size}")
 # pprint(itos)
 
+
+# Convert the text into a sequence of integer indices
+data = [stoi[word] for word in words]
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# Create dataset for next-word prediction
+def create_dataset(data, block_size):
+    X, Y = [], []
+    for i in range(len(data) - block_size):
+        context = data[i:i + block_size]
+        ix = data[i + block_size]
+
+        # Print the context and next word in the desired format
+        print(' '.join(itos[j] for j in context), '--->', itos[ix])
+
+        X.append(context)
+        Y.append(ix)
+
+    return torch.tensor(X, dtype=torch.long), torch.tensor(Y, dtype=torch.long)
+
+# Generate X and Y with printed contexts and next words
+X, Y = create_dataset(data, block_size)
+# Split the data into training and validation sets
+X_train, X_val, Y_train, Y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
+
 # Initialize the model
 vocab_size = len(stoi)
 model = NextWordMLP(vocab_size, embedding_dim, block_size, hidden_size, activation_func)
 model.to(device)
 
 # Define optimizer and loss function
+epochs = 10
+batch_size=64
 learning_rate = 0.001
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 criterion = nn.CrossEntropyLoss()
+# Training loop
+for epoch in range(epochs):
+    model.train()
+    epoch_loss = 0
+    for i in range(0, len(X_train), batch_size):
+        x_batch = X_train[i:i + batch_size].to(device)
+        y_batch = Y_train[i:i + batch_size].to(device)
+
+        # Forward pass
+        y_pred = model(x_batch)
+
+        # Compute loss
+        loss = criterion(y_pred, y_batch)
+
+        # Backward pass and optimization
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        epoch_loss += loss.item()
+
+    # Validation
+    model.eval()
+    val_loss = 0
+    with torch.no_grad():
+        for i in range(0, len(X_val), batch_size):
+            x_val_batch = X_val[i:i + batch_size].to(device)
+            y_val_batch = Y_val[i:i + batch_size].to(device)
+
+            # Forward pass
+            y_val_pred = model(x_val_batch)
+
+            # Compute loss
+            loss = criterion(y_val_pred, y_val_batch)
+            val_loss += loss.item()
+
+    #print(f"Epoch {epoch + 1}/{epochs}, Training Loss: {epoch_loss / len(X_train):.4f}, Validation Loss: {val_loss / len(X_val):.4f}")
+
 
 # Function to predict next words
 def predict_next_words(model, context, top_k):
@@ -106,7 +187,7 @@ if st.button("Predict"):
     st.write(f"Top {top_k} predictions: {', '.join(next_words)}")
 
 # Embedding visualization (optional)
-if st.sidebar.checkbox("Show Embedding Visualization"):
-    # Code for visualizing embeddings can go here
-    st.write("Embedding visualization (if enabled)")
+# if st.sidebar.checkbox("Show Embedding Visualization"):
+#     # Code for visualizing embeddings can go here
+#     st.write("Embedding visualization (if enabled)")
 
